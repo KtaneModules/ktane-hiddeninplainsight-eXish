@@ -324,4 +324,17 @@ public class HiddenInPlainSightScript : MonoBehaviour {
             }
         }
     }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        if (timeHovered != -1 && timeHovered != correctStart)
+            lastHit = "hipsStatus" + moduleId;
+        if (timeHovered == -1)
+        {
+            while ((int)bomb.GetTime() % 60 != correctStart) yield return true;
+            timeHovered = (int)bomb.GetTime() % 60;
+        }
+        while ((int)bomb.GetTime() % 60 != correctEnd) yield return true;
+        lastHit = "hipsStatus" + moduleId;
+    }
 }
