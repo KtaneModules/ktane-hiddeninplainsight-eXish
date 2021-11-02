@@ -248,9 +248,8 @@ public class HiddenInPlainSightScript : MonoBehaviour {
 
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} cycle [Quickly hovers over the numbers and shape] | !{0} toggle <##> [Starts or stops hovering over the status light when the last two digits of the bomb's timer are '##']";
+    private readonly string TwitchHelpMessage = @"!{0} cycle [Quickly hovers over the numbers and shape] | !{0} toggle <##> <##₂> [Starts and stops hovering over the status light when the last two digits of the bomb's timer are '##' and '##₂']";
     #pragma warning restore 414
-    bool ZenModeActive;
 
     IEnumerator ProcessTwitchCommand(string command)
     {
@@ -263,14 +262,14 @@ public class HiddenInPlainSightScript : MonoBehaviour {
                 float t = 0f;
                 while (t < 2f)
                 {
-                    yield return "trycancel Halted hovering over the numbers and shape due to a request to cancel!";
+                    yield return "trycancel Halted hovering over the numbers and shape due to a cancel request.";
                     t += Time.deltaTime;
                 }
                 increase[i] = false;
                 t = 0f;
                 while (t < .1f)
                 {
-                    yield return "trycancel Halted hovering over the numbers and shape due to a request to cancel!";
+                    yield return "trycancel Halted hovering over the numbers and shape due to a cancel request.";
                     t += Time.deltaTime;
                 }
             }
@@ -278,41 +277,51 @@ public class HiddenInPlainSightScript : MonoBehaviour {
         string[] parameters = command.Split(' ');
         if (Regex.IsMatch(parameters[0], @"^\s*toggle\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
-            if (parameters.Length > 2)
+            if (parameters.Length > 3)
             {
                 yield return "sendtochaterror Too many parameters!";
             }
-            else if (parameters.Length == 2)
+            else if (parameters.Length == 3)
             {
                 int time = -1;
+                int time2 = -1;
                 if (int.TryParse(parameters[1], out time))
                 {
-                    if (parameters[1].Length == 2 && time >= 0 && time <= 59)
+                    if (int.TryParse(parameters[2], out time2))
                     {
-                        yield return null;
-                        if ((int)bomb.GetTime() % 60 == time)
-                            yield return "waiting music";
-                        else if (ZenModeActive)
+                        if (parameters[1].Length == 2 && time >= 0 && time <= 59)
                         {
-                            if ((time > (int)bomb.GetTime() % 60 && (time - (int)bomb.GetTime() % 60 > 15)) || (time < (int)bomb.GetTime() % 60 && (60 - (int)bomb.GetTime() % 60 + time > 15)))
-                                yield return "waiting music";
+                            if (parameters[2].Length == 2 && time2 >= 0 && time2 <= 59)
+                            {
+                                yield return null;
+                                while ((int)bomb.GetTime() % 60 == time) yield return "trycancel Halted waiting to start hovering due to a cancel request.";
+                                while ((int)bomb.GetTime() % 60 != time) yield return "trycancel Halted waiting to start hovering due to a cancel request.";
+                                timeHovered = (int)bomb.GetTime() % 60;
+                                while ((int)bomb.GetTime() % 60 != time2) yield return "trycancel Halted waiting to stop hovering due to a cancel request.";
+                                if (timeHovered == correctStart && ((int)bomb.GetTime() % 60) == correctEnd)
+                                    yield return "solve";
+                                lastHit = "hipsStatus" + moduleId;
+                                yield break;
+                            }
+                            yield return "sendtochaterror!f The specified digits '" + parameters[2] + "' are invalid!";
+                            yield break;
                         }
-                        else
-                        {
-                            if ((time > (int)bomb.GetTime() % 60 && (60 - time + (int)bomb.GetTime() % 60 > 15)) || (time < (int)bomb.GetTime() % 60 && ((int)bomb.GetTime() % 60 - time > 15)))
-                                yield return "waiting music";
-                        }
-                        while ((int)bomb.GetTime() % 60 == time) yield return "trycancel Halted waiting to start or stop hovering due to a cancel request.";
-                        while ((int)bomb.GetTime() % 60 != time) yield return "trycancel Halted waiting to start or stop hovering due to a cancel request.";
-                        yield return "end waiting music";
-                        if (timeHovered == -1)
-                            timeHovered = (int)bomb.GetTime() % 60;
-                        else
-                        {
-                            if (timeHovered == correctStart && ((int)bomb.GetTime() % 60) == correctEnd)
-                                yield return "solve";
-                            lastHit = "hipsStatus" + moduleId;
-                        }
+                        yield return "sendtochaterror!f The specified digits '" + parameters[1] + "' are invalid!";
+                        yield break;
+                    }
+                    yield return "sendtochaterror!f The specified digits '" + parameters[2] + "' are invalid!";
+                    yield break;
+                }
+                yield return "sendtochaterror!f The specified digits '" + parameters[1] + "' are invalid!";
+            }
+            else if (parameters.Length == 2)
+            {
+                int temp = -1;
+                if (int.TryParse(parameters[1], out temp))
+                {
+                    if (parameters[1].Length == 2 && temp >= 0 && temp <= 59)
+                    {
+                        yield return "sendtochaterror Please specify the digits to stop hovering on!";
                         yield break;
                     }
                 }
@@ -320,13 +329,15 @@ public class HiddenInPlainSightScript : MonoBehaviour {
             }
             else if (parameters.Length == 1)
             {
-                yield return "sendtochaterror Please specify the digits to start or stop hovering on!";
+                yield return "sendtochaterror Please specify the digits to start and stop hovering on!";
             }
         }
     }
 
     IEnumerator TwitchHandleForcedSolve()
     {
+        focused = true;
+        ModuleSelectable.OnDefocus = null;
         if (timeHovered != -1 && timeHovered != correctStart)
             lastHit = "hipsStatus" + moduleId;
         if (timeHovered == -1)
@@ -334,7 +345,7 @@ public class HiddenInPlainSightScript : MonoBehaviour {
             while ((int)bomb.GetTime() % 60 != correctStart) yield return true;
             timeHovered = (int)bomb.GetTime() % 60;
         }
-        while ((int)bomb.GetTime() % 60 != correctEnd) yield return true;
+        while ((int)bomb.GetTime() % 60 != correctEnd) yield return null;
         lastHit = "hipsStatus" + moduleId;
     }
 }

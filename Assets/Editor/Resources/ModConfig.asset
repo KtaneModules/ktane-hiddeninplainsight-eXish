@@ -26,11 +26,11 @@ MonoBehaviour:
     PDF: https://ktane.timwi.de/PDF/Hidden%20In%20Plain%20Sight.pdf
 
 
-    Hidden In Plain Sight (hiddenInPlainSightModule) v1.0.1
+    Hidden In Plain Sight (hiddenInPlainSightModule) v1.0.3
 
     Module and Concept by eXish
 
     Twitch Plays supported'
-  version: 1.0.1
+  version: 1.0.3
   outputFolder: build
   previewImage: {fileID: 2800000, guid: f120eac3b922c3e448897d1ff6b072b4, type: 3}
